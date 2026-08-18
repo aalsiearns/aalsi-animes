@@ -13,10 +13,26 @@ const SMART_SERVERS = [
     (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`
 ];
 
-async function loadAllRows(type = 'home') {
+// 1. नेविगेशन और कैटेगरी के हिसाब से डेटा लोड करना
+async function switchNav(el, type) {
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    if(el) el.classList.add('active');
+
     const container = document.getElementById('main-container');
     if (!container) return;
 
+    if (type === 'search') {
+        container.innerHTML = `
+            <div style="padding:20px; text-align:center;">
+                <h2 style="color:#fff; font-size:18px; margin-bottom:15px;">Search Anime & Cartoons</h2>
+                <input type="text" id="search-input" placeholder="Type name (e.g. Naruto, Doraemon)..." style="width:100%; max-width:500px; padding:12px; background:#16161a; border:1px solid #444; color:white; border-radius:8px; font-size:14px; outline:none;" oninput="handleSearch(this.value)">
+                <div id="search-results" class="poster-container" style="margin-top:20px; display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;"></div>
+            </div>
+        `;
+        return;
+    }
+
+    // होम या बाकी टैब्स के लिए बेस लेआउट
     container.innerHTML = `
         <div class="filter-section">
             <div class="filter-label">Selected language: ● Hindi</div>
@@ -29,28 +45,36 @@ async function loadAllRows(type = 'home') {
                 <button class="lang-btn">Korean<br><span style="font-size:9px; color:#aaa;">한국어</span></button>
             </div>
         </div>
-        <div class="networks-section">
-            <div class="networks-heading">Networks</div>
-            <div class="networks-grid-ref">
-                <div class="net-badge disney">Disney+</div>
-                <div class="net-badge hungama">Hungama</div>
-                <div class="net-badge sony">Sony Yay</div>
-                <div class="net-badge cn">Cartoon Network</div>
-                <div class="net-badge prime">Prime Video</div>
-                <div class="net-badge netflix">Netflix</div>
-                <div class="net-badge hotstar">Hotstar</div>
-                <div class="net-badge crunchy">Crunchyroll</div>
-            </div>
-        </div>
         <div id="movie-rows-container"></div>
     `;
 
     const rows = document.getElementById('movie-rows-container');
-    const cats = [
-        { title: "🔥 Most-Watched Anime Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc` },
-        { title: "🧸 Cartoon Favorites", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=en&sort_by=popularity.desc` },
-        { title: "🎬 Anime & Cartoon Movies", url: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc` }
-    ];
+    let cats = [];
+
+    if (type === 'anime') {
+        cats = [
+            { title: "🔥 Japanese Anime Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc` }
+        ];
+    } else if (type === 'cartoon') {
+        cats = [
+            { title: "🧸 Cartoon Favorites (English Animation)", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=en&sort_by=popularity.desc` }
+        ];
+    } else if (type === 'movies') {
+        cats = [
+            { title: "🎬 Anime & Cartoon Movies", url: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc` }
+        ];
+    } else if (type === 'series') {
+        cats = [
+            { title: "📺 All Animation Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc` }
+        ];
+    } else {
+        // Default Home
+        cats = [
+            { title: "🔥 Most-Watched Anime Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc` },
+            { title: "🧸 Cartoon Favorites", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=en&sort_by=popularity.desc` },
+            { title: "🎬 Anime & Cartoon Movies", url: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc` }
+        ];
+    }
 
     for (let cat of cats) {
         try {
@@ -83,6 +107,10 @@ async function loadAllRows(type = 'home') {
             console.error("Load Error:", e);
         }
     }
+}
+
+async function loadAllRows(type = 'home') {
+    switchNav(null, type);
 }
 
 async function openDedicatedPage(item) {
@@ -154,7 +182,6 @@ async function fetchEpisodesForDedicatedPage() {
         grid.innerHTML = '';
         if (data.episodes && data.episodes.length > 0) {
             const epsToDisplay = data.episodes.slice(0, visibleEpisodesLimit);
-            epsToDivider = epsToDisplay;
             epsToDisplay.forEach(e => {
                 const div = document.createElement('div');
                 div.className = 'ep-box-card';
@@ -184,6 +211,7 @@ function loadMoreEpisodes() {
     fetchEpisodesForDedicatedPage();
 }
 
+// वीडियो प्लेयर - ब्लैक स्क्रीन फिक्स (रिस्पॉन्सिव और आटोमैटिक फॉलबैक के साथ)
 function playVideo(show, s, e, name) {
     const container = document.getElementById('main-container');
     const showName = show.name || show.title;
@@ -192,12 +220,12 @@ function playVideo(show, s, e, name) {
         <div class="video-player-section" style="padding:20px;">
             <button class="back-btn" onclick="openDedicatedPage(currentShowData)"><i class="fa-solid fa-arrow-left"></i> Back</button>
             <h2 style="font-size:14px; margin-bottom:8px; color:#fff;">${showName} - S${s} E${e}: ${name}</h2>
-            <p style="color:#00ff88; font-size:11px; margin-bottom:8px;">🎧 Multi-Audio Stream Active</p>
+            <p style="color:#00ff88; font-size:11px; margin-bottom:8px;">🎧 Multi-Audio Stream Active (Switch servers if black screen occurs)</p>
             
             <div id="s-gallery" class="server-gallery"></div>
             
             <div class="embed-container" style="position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:8px; overflow:hidden; border:1px solid #222;">
-                <iframe id="vid" src="${SMART_SERVERS[activeServer](show.id, s, e)}" width="100%" height="100%" frameborder="0" allowfullscreen="true" scrolling="no"></iframe>
+                <iframe id="vid" src="${SMART_SERVERS[activeServer](show.id, s, e)}" width="100%" height="100%" frameborder="0" allowfullscreen="true" scrolling="no" allow="autoplay; fullscreen"></iframe>
             </div>
         </div>
     `;
@@ -217,31 +245,39 @@ function playVideo(show, s, e, name) {
     });
 }
 
-function switchNav(el, type) {
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    if(el) el.classList.add('active');
-    loadAllRows('home');
-}
-
 async function handleSearch(query) {
-    if(!query) return;
-    const res = await fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}`);
-    const data = await res.json();
     const resBox = document.getElementById('search-results');
-    resBox.innerHTML = '';
-    data.results.forEach(i => {
-        if(i.poster_path && (i.media_type === 'tv' || i.media_type === 'movie')) {
-            const card = document.createElement('div');
-            card.className = 'poster-card';
-            card.style.width = '100%';
-            card.innerHTML = `
-                <img src="${IMG_URL + i.poster_path}">
-                <div class="poster-title">${i.name || i.title}</div>
-            `;
-            card.onclick = () => openDedicatedPage(i);
-            resBox.appendChild(card);
+    if(!query || query.trim() === '') {
+        if(resBox) resBox.innerHTML = '';
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        if(!resBox) return;
+        resBox.innerHTML = '';
+        
+        if(data.results && data.results.length > 0) {
+            data.results.forEach(i => {
+                if(i.poster_path && (i.media_type === 'tv' || i.media_type === 'movie')) {
+                    const card = document.createElement('div');
+                    card.className = 'poster-card';
+                    card.style.width = '100%';
+                    card.innerHTML = `
+                        <img src="${IMG_URL + i.poster_path}" alt="${i.name || i.title}">
+                        <div class="poster-title">${i.name || i.title}</div>
+                    `;
+                    card.onclick = () => openDedicatedPage(i);
+                    resBox.appendChild(card);
+                }
+            });
+        } else {
+            resBox.innerHTML = '<p style="color:#aaa; font-size:12px; grid-column: span 3; text-align:center;">No results found.</p>';
         }
-    });
+    } catch (err) {
+        console.error("Search Error:", err);
+    }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
