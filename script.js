@@ -13,7 +13,7 @@ const SMART_SERVERS = [
     (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`
 ];
 
-// 1. नेविगेशन और कैटेगरी के हिसाब से डेटा लोड करना
+// 1. नेविगेशन और होमपेज लोड करना
 async function switchNav(el, type) {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     if(el) el.classList.add('active');
@@ -32,7 +32,6 @@ async function switchNav(el, type) {
         return;
     }
 
-    // होम या बाकी टैब्स के लिए बेस लेआउट
     container.innerHTML = `
         <div class="filter-section">
             <div class="filter-label">Selected language: ● Hindi</div>
@@ -57,7 +56,7 @@ async function switchNav(el, type) {
         ];
     } else if (type === 'cartoon') {
         cats = [
-            { title: "🧸 Cartoon Favorites (English Animation)", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=en&sort_by=popularity.desc` }
+            { title: "🧸 Cartoon Favorites", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=en&sort_by=popularity.desc` }
         ];
     } else if (type === 'movies') {
         cats = [
@@ -68,18 +67,16 @@ async function switchNav(el, type) {
             { title: "📺 All Animation Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc` }
         ];
     } else {
-        // Default Home
+        // होमपेज पर सबसे ऊपर कोर ट्रेंडिंग एनिमे (Naruto, DBZ, AOT आदि) के लिए स्पेशल सर्च लिस्ट
         cats = [
-            { title: "🔥 Most-Watched Anime Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc` },
-            { title: "🧸 Cartoon Favorites", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=en&sort_by=popularity.desc` },
-            { title: "🎬 Anime & Cartoon Movies", url: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc` }
+            { title: "🔥 Trending Core Anime (Naruto, DBZ, AOT)", isManual: true, queryList: ["Naruto Shippuden", "Naruto", "Dragon Ball Z", "Attack on Titan", "Jujutsu Kaisen", "Demon Slayer", "Tokyo Revengers"] },
+            { title: "⭐ Most-Watched Anime Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc` },
+            { title: "🧸 Cartoon Favorites", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=en&sort_by=popularity.desc` }
         ];
     }
 
     for (let cat of cats) {
         try {
-            const res = await fetch(cat.url);
-            const data = await res.json();
             const sec = document.createElement('div');
             sec.className = "category-section";
             sec.innerHTML = `
@@ -88,20 +85,47 @@ async function switchNav(el, type) {
             `;
             rows.appendChild(sec);
             const pCont = sec.querySelector('.poster-container');
-            
-            if (data.results) {
-                data.results.forEach(i => {
-                    if (i.poster_path) {
-                        const card = document.createElement('div');
-                        card.className = 'poster-card';
-                        card.innerHTML = `
-                            <img src="${IMG_URL + i.poster_path}" alt="${i.name || i.title}">
-                            <div class="poster-title">${i.name || i.title}</div>
-                        `;
-                        card.onclick = () => openDedicatedPage(i);
-                        pCont.appendChild(card);
+
+            if (cat.isManual) {
+                // कोर ट्रेंडिंग शोज़ को नाम से सर्च करके सीधे दिखाना
+                for (let qName of cat.queryList) {
+                    try {
+                        const sRes = await fetch(`${BASE_URL}/search/tv?api_key=${API_KEY}&query=${encodeURIComponent(qName)}`);
+                        const sData = await sRes.json();
+                        if (sData.results && sData.results.length > 0) {
+                            const item = sData.results[0]; // सबसे सटीक मैच
+                            if (item.poster_path) {
+                                const card = document.createElement('div');
+                                card.className = 'poster-card';
+                                card.innerHTML = `
+                                    <img src="${IMG_URL + item.poster_path}" alt="${item.name}">
+                                    <div class="poster-title">${item.name}</div>
+                                `;
+                                card.onclick = () => openDedicatedPage(item);
+                                pCont.appendChild(card);
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Manual fetch error:", err);
                     }
-                });
+                }
+            } else {
+                const res = await fetch(cat.url);
+                const data = await res.json();
+                if (data.results) {
+                    data.results.forEach(i => {
+                        if (i.poster_path) {
+                            const card = document.createElement('div');
+                            card.className = 'poster-card';
+                            card.innerHTML = `
+                                <img src="${IMG_URL + i.poster_path}" alt="${i.name || i.title}">
+                                <div class="poster-title">${i.name || i.title}</div>
+                            `;
+                            card.onclick = () => openDedicatedPage(i);
+                            pCont.appendChild(card);
+                        }
+                    });
+                }
             }
         } catch (e) {
             console.error("Load Error:", e);
@@ -211,7 +235,7 @@ function loadMoreEpisodes() {
     fetchEpisodesForDedicatedPage();
 }
 
-// वीडियो प्लेयर - ब्लैक स्क्रीन फिक्स (रिस्पॉन्सिव और आटोमैटिक फॉलबैक के साथ)
+// वीडियो प्लेयर - लोडिंग स्पिनर और फॉलबैक फ्रेम के साथ ब्लैक स्क्रीन फिक्स
 function playVideo(show, s, e, name) {
     const container = document.getElementById('main-container');
     const showName = show.name || show.title;
@@ -220,12 +244,13 @@ function playVideo(show, s, e, name) {
         <div class="video-player-section" style="padding:20px;">
             <button class="back-btn" onclick="openDedicatedPage(currentShowData)"><i class="fa-solid fa-arrow-left"></i> Back</button>
             <h2 style="font-size:14px; margin-bottom:8px; color:#fff;">${showName} - S${s} E${e}: ${name}</h2>
-            <p style="color:#00ff88; font-size:11px; margin-bottom:8px;">🎧 Multi-Audio Stream Active (Switch servers if black screen occurs)</p>
+            <p style="color:#00ff88; font-size:11px; margin-bottom:8px;">🎧 Multi-Audio Stream Active (If black screen appears, switch to Server 2 or 3)</p>
             
             <div id="s-gallery" class="server-gallery"></div>
             
-            <div class="embed-container" style="position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:8px; overflow:hidden; border:1px solid #222;">
-                <iframe id="vid" src="${SMART_SERVERS[activeServer](show.id, s, e)}" width="100%" height="100%" frameborder="0" allowfullscreen="true" scrolling="no" allow="autoplay; fullscreen"></iframe>
+            <div class="embed-container" style="position:relative; width:100%; aspect-ratio:16/9; background:#111; border-radius:8px; overflow:hidden; border:1px solid #333; display:flex; align-items:center; justify-content:center;">
+                <div style="position:absolute; color:#aaa; font-size:12px; z-index:1;">Loading Player...</div>
+                <iframe id="vid" src="${SMART_SERVERS[activeServer](show.id, s, e)}" width="100%" height="100%" frameborder="0" allowfullscreen="true" scrolling="no" allow="autoplay; fullscreen; encrypted-media" style="position:relative; z-index:2; background:transparent;"></iframe>
             </div>
         </div>
     `;
