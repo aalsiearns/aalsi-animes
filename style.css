@@ -1,0 +1,56 @@
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', sans-serif; }
+body { background-color: #0c0c0c; color: white; padding-bottom: 90px; }
+
+.top-header { padding: 12px 20px; background: #0c0c0c; position: sticky; top:0; z-index: 100; border-bottom: 1px solid #1f1f1f; }
+.brand-box { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.brand-title { font-size: 18px; font-weight: bold; letter-spacing: 1px; }
+.highlight { color: #ff9900; }
+
+.filter-section, .networks-section { padding: 12px 20px; }
+.filter-label { font-size: 13px; margin-bottom: 8px; color: #ccc; font-weight: 500; }
+.lang-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.lang-btn { background: #16161a; border: 1px solid #333; color: white; padding: 10px 8px; border-radius: 8px; font-size: 12px; cursor: pointer; text-align: center; }
+.lang-btn.active { border: 2px solid #a855f7; background: #1a1025; }
+
+.networks-heading { font-size: 13px; color: #ccc; margin-bottom: 8px; font-weight: 500; }
+.networks-grid-ref { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.net-badge { height: 38px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white; cursor: pointer; }
+.net-badge.disney { background: #0072d2; }
+.net-badge.hungama { background: #ff6600; }
+.net-badge.sony { background: #8b5cf6; }
+.net-badge.cn { background: #000; border: 1px solid #333; }
+.net-badge.prime { background: #00a8e1; }
+.net-badge.netflix { background: #e50914; }
+.net-badge.hotstar { background: #0f1015; border: 1px solid #222; }
+.net-badge.crunchy { background: #f47521; }
+
+.category-section { margin-top: 15px; }
+.section-title { font-size: 15px; margin-left: 20px; margin-bottom: 10px; color: #fff; display: flex; align-items: center; gap: 8px; }
+.poster-container { display: flex; overflow-x: auto; padding: 0 20px; gap: 12px; scrollbar-width: none; }
+.poster-container::-webkit-scrollbar { display: none; }
+.poster-card { min-width: 115px; width: 115px; cursor: pointer; flex-shrink: 0; }
+.poster-card img { width: 100%; height: 165px; object-fit: cover; border-radius: 6px; }
+.poster-title { font-size: 11px; margin-top: 5px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #ddd; }
+
+.bottom-nav { position: fixed; bottom: 0; width: 100%; background: #0c0c0c; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #1f1f1f; z-index: 1000; }
+.nav-item { color: #777; text-decoration: none; font-size: 9px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 600; }
+.nav-item.active { color: #fff; }
+.nav-item i { font-size: 16px; }
+
+.dedicated-page { padding: 20px; }
+.back-btn { background: #333; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; font-size: 12px; }
+.anime-banner { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; }
+.seasons-bar { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 15px; }
+.season-chip { background: #222; border: none; color: white; padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.season-chip.active { background: #ff9900; color: #000; font-weight: bold; }
+.episodes-grid-box { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.ep-box-card { background: #16161a; border-radius: 6px; overflow: hidden; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 6px; }
+.ep-box-card img { width: 80px; height: 48px; object-fit: cover; border-radius: 4px; }
+.ep-box-info { font-size: 11px; overflow: hidden; }
+.ep-num { color: #ff9900; font-weight: bold; font-size: 10px; }
+.ep-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #eee; }
+.view-more-btn { width: 100%; background: #222; border: none; color: white; padding: 10px; border-radius: 6px; margin-top: 15px; cursor: pointer; font-size: 12px; }
+.video-player-section { padding: 20px; }
+.server-gallery { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; }
+.server-btn { background: #222; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; }
+.server-btn.active { background: #ff9900; color: #000; font-weight: bold; }

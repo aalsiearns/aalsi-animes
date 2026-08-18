@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aalsi Animes - Premium Anime & Cartoon</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="top-header">
+        <div class="brand-box">
+            <span class="brand-title">AALSI <span class="highlight">ANIMES</span></span>
+        </div>
+    </header>
+
+    <main id="main-container"></main>
+
+    <!-- सभी वर्किंग नेविगेशन बटन्स के साथ बॉटम बार -->
+    <nav class="bottom-nav">
+        <a href="#" class="nav-item active" onclick="switchNav(this, 'home')">
+            <i class="fa-solid fa-house"></i><span>HOME</span>
+        </a>
+        <a href="#" class="nav-item" onclick="switchNav(this, 'search')">
+            <i class="fa-solid fa-magnifying-glass"></i><span>SEARCH</span>
+        </a>
+        <a href="#" class="nav-item" onclick="switchNav(this, 'series')">
+            <i class="fa-solid fa-tv"></i><span>SERIES</span>
+        </a>
+        <a href="#" class="nav-item" onclick="switchNav(this, 'movies')">
+            <i class="fa-solid fa-film"></i><span>MOVIES</span>
+        </a>
+        <a href="#" class="nav-item" onclick="switchNav(this, 'anime')">
+            <i class="fa-solid fa-khanda"></i><span>ANIME</span>
+        </a>
+        <a href="#" class="nav-item" onclick="switchNav(this, 'cartoon')">
+            <i class="fa-solid fa-face-smile"></i><span>CARTOON</span>
+        </a>
+    </nav>
+
+    <script src="script.js"></script>
+</body>
+</html>
