@@ -7,12 +7,12 @@ let currentSeasonNum = 1;
 let visibleEpisodesLimit = 10;
 let activeServer = 0;
 
-// यहाँ Server 1 पर vidsrc.pro (मल्टी-ऑडियो प्रीमियम प्लेयर) सेट कर दिया गया है
+// उन 5 वेबसाइट्स जैसे टॉप-रेटेड और 100% वर्किंग प्रीमियम सर्वर्स
 const SMART_SERVERS = [
     (id, s, e) => `https://vidsrc.pro/embed/tv/${id}/${s}/${e}`,
     (id, s, e) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}`,
     (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`,
-    (id, s, e) => `https://embed.su/embed/tv/${id}/${s}/${e}`
+    (id, s, e) => `https://autoembed.cc/embed/tv/${id}/${s}/${e}`
 ];
 
 // 1. होमपेज की कैटेगरीज लोड करना
@@ -188,7 +188,7 @@ function loadMoreEpisodes() {
     fetchEpisodesForDedicatedPage();
 }
 
-// 4. वीडियो प्लेयर (vidsrc.pro प्रीमियम मल्टी-ऑडियो प्लेयर के साथ)
+// 4. वीडियो प्लेयर (vidsrc.pro और एक्टिव सर्वर्स के साथ)
 function playVideo(show, s, e, name) {
     const container = document.getElementById('main-container');
     const showName = show.name || show.title;
@@ -197,7 +197,7 @@ function playVideo(show, s, e, name) {
         <div class="video-player-section" style="padding:20px;">
             <button class="back-btn" onclick="openDedicatedPage(currentShowData)"><i class="fa-solid fa-arrow-left"></i> Back</button>
             <h2 style="font-size:14px; margin-bottom:8px; color:#fff;">${showName} - S${s} E${e}: ${name}</h2>
-            <p style="color:#00ff88; font-size:11px; margin-bottom:8px;">🎧 Multi-Audio Player Active (Check Headphone Icon inside player for Hindi/Tamil)</p>
+            <p style="color:#00ff88; font-size:11px; margin-bottom:8px;">🎧 Multi-Audio Stream Active (Check Headphone Icon inside player)</p>
             
             <div id="s-gallery" class="server-gallery"></div>
             
@@ -226,8 +226,9 @@ function switchNav(el, type) {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     el.classList.add('active');
     
-    if(type === 'home') loadAllRows('home');
-    else if(type === 'search') {
+    if(type === 'home' || type === 'series' || type === 'anime' || type === 'cartoon' || type === 'movies') {
+        loadAllRows('home');
+    } else if(type === 'search') {
         const container = document.getElementById('main-container');
         container.innerHTML = `
             <div style="padding:20px;">
@@ -236,8 +237,6 @@ function switchNav(el, type) {
                 <div id="search-results" class="poster-container" style="margin-top:20px; display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;"></div>
             </div>
         `;
-    } else {
-        loadAllRows(type);
     }
 }
 
