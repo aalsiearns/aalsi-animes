@@ -235,36 +235,48 @@ function loadMoreEpisodes() {
     fetchEpisodesForDedicatedPage();
 }
 
-// वीडियो प्लेयर - लोडिंग स्पिनर और फॉलबैक फ्रेम के साथ ब्लैक स्क्रीन फिक्स
+// AnimeSalt की तरह डायरेक्ट प्लेयर और मल्टी-ऑडियो सपोर्ट वाला फंक्शन
 function playVideo(show, s, e, name) {
     const container = document.getElementById('main-container');
     const showName = show.name || show.title;
 
+    // vidsrc का अल्टरनेटिव और एडवांस्ड प्लेयर फ्रेम जो सीधे वीडियो और ऑडियो लेयर्स लोड करता है
+    const embedUrl = `https://vidsrc.xyz/embed/tv/${show.id}/${s}/${e}`;
+
     container.innerHTML = `
-        <div class="video-player-section" style="padding:20px;">
-            <button class="back-btn" onclick="openDedicatedPage(currentShowData)"><i class="fa-solid fa-arrow-left"></i> Back</button>
-            <h2 style="font-size:14px; margin-bottom:8px; color:#fff;">${showName} - S${s} E${e}: ${name}</h2>
-            <p style="color:#00ff88; font-size:11px; margin-bottom:8px;">🎧 Multi-Audio Stream Active (If black screen appears, switch to Server 2 or 3)</p>
+        <div class="video-player-section" style="padding:15px;">
+            <button class="back-btn" onclick="openDedicatedPage(currentShowData)" style="background:#222; color:#fff; border:none; padding:8px 15px; border-radius:6px; margin-bottom:10px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+            <h2 style="font-size:14px; margin-bottom:5px; color:#fff;">${showName} - S${s} E${e}: ${name}</h2>
+            <p style="color:#00ff88; font-size:10px; margin-bottom:8px;">⚡ AnimeSalt Style Player Active (Select Audio inside player)</p>
             
-            <div id="s-gallery" class="server-gallery"></div>
+            <div id="s-gallery" class="server-gallery" style="margin-bottom:10px; display:flex; gap:5px;"></div>
             
-            <div class="embed-container" style="position:relative; width:100%; aspect-ratio:16/9; background:#111; border-radius:8px; overflow:hidden; border:1px solid #333; display:flex; align-items:center; justify-content:center;">
-                <div style="position:absolute; color:#aaa; font-size:12px; z-index:1;">Loading Player...</div>
-                <iframe id="vid" src="${SMART_SERVERS[activeServer](show.id, s, e)}" width="100%" height="100%" frameborder="0" allowfullscreen="true" scrolling="no" allow="autoplay; fullscreen; encrypted-media" style="position:relative; z-index:2; background:transparent;"></iframe>
+            <div class="embed-container" style="position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:10px; overflow:hidden; border:1px solid #333;">
+                <iframe id="vid" src="${embedUrl}" width="100%" height="100%" frameborder="0" allowfullscreen="true" scrolling="no" allow="autoplay; fullscreen; encrypted-media"></iframe>
             </div>
         </div>
     `;
 
+    // सर्वर्स की लिस्ट ताकि अगर एक पर लोड न हो तो दूसरे से तुरंत चल जाए
+    const servers = [
+        (id, season, episode) => `https://vidsrc.xyz/embed/tv/${id}/${season}/${episode}`,
+        (id, season, episode) => `https://vidsrc.me/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`,
+        (id, season, episode) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}`
+    ];
+
     const sBox = document.getElementById('s-gallery');
-    SMART_SERVERS.forEach((_, idx) => {
+    servers.forEach((srvFn, idx) => {
         const b = document.createElement('button');
         b.className = `server-btn ${idx === activeServer ? 'active' : ''}`;
         b.innerText = `Server ${idx + 1}`;
+        b.style.cssText = `padding:5px 10px; background:${idx === activeServer ? '#f59e0b' : '#222'}; color:#fff; border:none; border-radius:4px; font-size:11px; cursor:pointer;`;
         b.onclick = () => {
             activeServer = idx;
-            document.getElementById('vid').src = SMART_SERVERS[activeServer](show.id, s, e);
-            document.querySelectorAll('.server-btn').forEach(x => x.classList.remove('active'));
-            b.classList.add('active');
+            document.getElementById('vid').src = srvFn(show.id, s, e);
+            document.querySelectorAll('.server-btn').forEach(x => {
+                x.style.background = '#222';
+            });
+            b.style.background = '#f59e0b';
         };
         sBox.appendChild(b);
     });
