@@ -154,6 +154,7 @@ async function fetchEpisodesForDedicatedPage() {
         grid.innerHTML = '';
         if (data.episodes && data.episodes.length > 0) {
             const epsToDisplay = data.episodes.slice(0, visibleEpisodesLimit);
+            epsToDivider = epsToDisplay;
             epsToDisplay.forEach(e => {
                 const div = document.createElement('div');
                 div.className = 'ep-box-card';
