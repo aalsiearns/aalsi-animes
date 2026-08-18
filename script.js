@@ -7,13 +7,13 @@ let currentSeasonNum = 1;
 let visibleEpisodesLimit = 10;
 let activeServer = 0;
 
+// Cloudflare Proxy और डायरेक्ट स्ट्रीमिंग सर्वर्स का सेटअप
 const SMART_SERVERS = [
-    (id, s, e) => `https://vidsrc.pro/embed/tv/${id}/${s}/${e}`,
-    (id, s, e) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}`,
-    (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`
+    (id, s, e) => `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}`,
+    (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`,
+    (id, s, e) => `https://player.vidsrc.nl/embed/tv/${id}/${s}/${e}`
 ];
 
-// 1. नेविगेशन और होमपेज लोड करना
 async function switchNav(el, type) {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     if(el) el.classList.add('active');
@@ -67,7 +67,6 @@ async function switchNav(el, type) {
             { title: "📺 All Animation Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc` }
         ];
     } else {
-        // होमपेज पर सबसे ऊपर कोर ट्रेंडिंग एनिमे (Naruto, DBZ, AOT आदि) के लिए स्पेशल सर्च लिस्ट
         cats = [
             { title: "🔥 Trending Core Anime (Naruto, DBZ, AOT)", isManual: true, queryList: ["Naruto Shippuden", "Naruto", "Dragon Ball Z", "Attack on Titan", "Jujutsu Kaisen", "Demon Slayer", "Tokyo Revengers"] },
             { title: "⭐ Most-Watched Anime Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc` },
@@ -87,13 +86,12 @@ async function switchNav(el, type) {
             const pCont = sec.querySelector('.poster-container');
 
             if (cat.isManual) {
-                // कोर ट्रेंडिंग शोज़ को नाम से सर्च करके सीधे दिखाना
                 for (let qName of cat.queryList) {
                     try {
                         const sRes = await fetch(`${BASE_URL}/search/tv?api_key=${API_KEY}&query=${encodeURIComponent(qName)}`);
                         const sData = await sRes.json();
                         if (sData.results && sData.results.length > 0) {
-                            const item = sData.results[0]; // सबसे सटीक मैच
+                            const item = sData.results[0];
                             if (item.poster_path) {
                                 const card = document.createElement('div');
                                 card.className = 'poster-card';
@@ -235,37 +233,28 @@ function loadMoreEpisodes() {
     fetchEpisodesForDedicatedPage();
 }
 
-// AnimeSalt की तरह डायरेक्ट प्लेयर और मल्टी-ऑडियो सपोर्ट वाला फंक्शन
 function playVideo(show, s, e, name) {
     const container = document.getElementById('main-container');
     const showName = show.name || show.title;
 
-    // vidsrc का अल्टरनेटिव और एडवांस्ड प्लेयर फ्रेम जो सीधे वीडियो और ऑडियो लेयर्स लोड करता है
-    const embedUrl = `https://vidsrc.xyz/embed/tv/${show.id}/${s}/${e}`;
+    const initialUrl = SMART_SERVERS[activeServer](show.id, s, e);
 
     container.innerHTML = `
         <div class="video-player-section" style="padding:15px;">
             <button class="back-btn" onclick="openDedicatedPage(currentShowData)" style="background:#222; color:#fff; border:none; padding:8px 15px; border-radius:6px; margin-bottom:10px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i> Back</button>
             <h2 style="font-size:14px; margin-bottom:5px; color:#fff;">${showName} - S${s} E${e}: ${name}</h2>
-            <p style="color:#00ff88; font-size:10px; margin-bottom:8px;">⚡ AnimeSalt Style Player Active (Select Audio inside player)</p>
+            <p style="color:#00ff88; font-size:10px; margin-bottom:8px;">⚡ Cloudflare Proxy Stream Active (Switch servers if black screen)</p>
             
             <div id="s-gallery" class="server-gallery" style="margin-bottom:10px; display:flex; gap:5px;"></div>
             
             <div class="embed-container" style="position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:10px; overflow:hidden; border:1px solid #333;">
-                <iframe id="vid" src="${embedUrl}" width="100%" height="100%" frameborder="0" allowfullscreen="true" scrolling="no" allow="autoplay; fullscreen; encrypted-media"></iframe>
+                <iframe id="vid" src="${initialUrl}" width="100%" height="100%" frameborder="0" allowfullscreen="true" scrolling="no" allow="autoplay; fullscreen; encrypted-media"></iframe>
             </div>
         </div>
     `;
 
-    // सर्वर्स की लिस्ट ताकि अगर एक पर लोड न हो तो दूसरे से तुरंत चल जाए
-    const servers = [
-        (id, season, episode) => `https://vidsrc.xyz/embed/tv/${id}/${season}/${episode}`,
-        (id, season, episode) => `https://vidsrc.me/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`,
-        (id, season, episode) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}`
-    ];
-
     const sBox = document.getElementById('s-gallery');
-    servers.forEach((srvFn, idx) => {
+    SMART_SERVERS.forEach((srvFn, idx) => {
         const b = document.createElement('button');
         b.className = `server-btn ${idx === activeServer ? 'active' : ''}`;
         b.innerText = `Server ${idx + 1}`;
