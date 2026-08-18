@@ -224,20 +224,10 @@ function playVideo(show, s, e, name) {
 
 function switchNav(el, type) {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    el.classList.add('active');
+    if(el) el.classList.add('active');
     
-    if(type === 'home' || type === 'series' || type === 'anime' || type === 'cartoon' || type === 'movies') {
-        loadAllRows('home');
-    } else if(type === 'search') {
-        const container = document.getElementById('main-container');
-        container.innerHTML = `
-            <div style="padding:20px;">
-                <h2>Search</h2>
-                <input type="text" id="search-input" placeholder="Search anime/cartoon..." style="width:100%; padding:10px; background:#16161a; border:1px solid #333; color:white; border-radius:6px; margin-top:10px;" oninput="handleSearch(this.value)">
-                <div id="search-results" class="poster-container" style="margin-top:20px; display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;"></div>
-            </div>
-        `;
-    }
+    // मोबाइल और डेस्कटॉप दोनों के लिए सेफ लोडिंग
+    loadAllRows('home');
 }
 
 async function handleSearch(query) {
