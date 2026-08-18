@@ -7,15 +7,12 @@ let currentSeasonNum = 1;
 let visibleEpisodesLimit = 10;
 let activeServer = 0;
 
-// उन 5 वेबसाइट्स जैसे टॉप-रेटेड और 100% वर्किंग प्रीमियम सर्वर्स
 const SMART_SERVERS = [
     (id, s, e) => `https://vidsrc.pro/embed/tv/${id}/${s}/${e}`,
     (id, s, e) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}`,
-    (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`,
-    (id, s, e) => `https://autoembed.cc/embed/tv/${id}/${s}/${e}`
+    (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`
 ];
 
-// 1. होमपेज की कैटेगरीज लोड करना
 async function loadAllRows(type = 'home') {
     const container = document.getElementById('main-container');
     if (!container) return;
@@ -88,7 +85,6 @@ async function loadAllRows(type = 'home') {
     }
 }
 
-// 2. डेडिकेटेड पेज
 async function openDedicatedPage(item) {
     const isMovie = !item.name;
     if (isMovie) {
@@ -147,7 +143,6 @@ async function openDedicatedPage(item) {
     }
 }
 
-// 3. एपिसोड्स लोड करना
 async function fetchEpisodesForDedicatedPage() {
     const grid = document.getElementById('episodes-grid-box');
     grid.innerHTML = '<p style="color:#aaa; font-size:12px;">Loading episodes...</p>';
@@ -188,7 +183,6 @@ function loadMoreEpisodes() {
     fetchEpisodesForDedicatedPage();
 }
 
-// 4. वीडियो प्लेयर (vidsrc.pro और एक्टिव सर्वर्स के साथ)
 function playVideo(show, s, e, name) {
     const container = document.getElementById('main-container');
     const showName = show.name || show.title;
@@ -197,7 +191,7 @@ function playVideo(show, s, e, name) {
         <div class="video-player-section" style="padding:20px;">
             <button class="back-btn" onclick="openDedicatedPage(currentShowData)"><i class="fa-solid fa-arrow-left"></i> Back</button>
             <h2 style="font-size:14px; margin-bottom:8px; color:#fff;">${showName} - S${s} E${e}: ${name}</h2>
-            <p style="color:#00ff88; font-size:11px; margin-bottom:8px;">🎧 Multi-Audio Stream Active (Check Headphone Icon inside player)</p>
+            <p style="color:#00ff88; font-size:11px; margin-bottom:8px;">🎧 Multi-Audio Stream Active</p>
             
             <div id="s-gallery" class="server-gallery"></div>
             
@@ -225,8 +219,6 @@ function playVideo(show, s, e, name) {
 function switchNav(el, type) {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     if(el) el.classList.add('active');
-    
-    // मोबाइल और डेस्कटॉप दोनों के लिए सेफ लोडिंग
     loadAllRows('home');
 }
 
@@ -251,4 +243,6 @@ async function handleSearch(query) {
     });
 }
 
-loadAllRows('home');
+document.addEventListener("DOMContentLoaded", () => {
+    loadAllRows('home');
+});
