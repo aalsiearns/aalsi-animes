@@ -223,7 +223,7 @@ function loadMoreEpisodes() {
     fetchEpisodesForDedicatedPage();
 }
 
-// 🔥 Custom Player with Working Language Toggle
+// 🔥 Custom Player with Dynamic Episode Tracking
 function playVideo(show, s, e, name) {
     const container = document.getElementById('main-container');
     const showName = show.name || show.title;
@@ -232,7 +232,7 @@ function playVideo(show, s, e, name) {
         <div class="video-player-section" style="padding:15px;">
             <button class="back-btn" onclick="openDedicatedPage(currentShowData)" style="background:#222; color:#fff; border:none; padding:8px 15px; border-radius:6px; margin-bottom:10px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i> Back</button>
             <h2 style="font-size:14px; margin-bottom:5px; color:#fff;">${showName} - S${s} E${e}: ${name}</h2>
-            <p id="player-status" style="color:#f59e0b; font-size:11px; margin-bottom:8px;">⏳ Connecting to Cloud Server...</p>
+            <p id="player-status" style="color:#f59e0b; font-size:11px; margin-bottom:8px;">⏳ Searching internet for S${s} E${e}...</p>
             
             <div class="embed-container" style="position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:10px; overflow:hidden; border:1px solid #333;">
                 <video id="custom-video-player" controls style="width:100%; height:100%; outline:none; background:black;"></video>
@@ -240,23 +240,22 @@ function playVideo(show, s, e, name) {
 
             <!-- 🔥 Language Toggle Buttons -->
             <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
-                <button class="lang-toggle-btn active" onclick="fetchVideoLanguage('${encodeURIComponent(showName)}', 'hindi', this)" style="padding:8px 15px; background:#f59e0b; color:#000; font-weight:bold; border:none; border-radius:5px; cursor:pointer;">Hindi (Default)</button>
-                <button class="lang-toggle-btn" onclick="fetchVideoLanguage('${encodeURIComponent(showName)}', 'english', this)" style="padding:8px 15px; background:#222; color:#fff; font-weight:bold; border:none; border-radius:5px; cursor:pointer;">English</button>
-                <button class="lang-toggle-btn" onclick="fetchVideoLanguage('${encodeURIComponent(showName)}', 'japanese', this)" style="padding:8px 15px; background:#222; color:#fff; font-weight:bold; border:none; border-radius:5px; cursor:pointer;">Japanese</button>
+                <button class="lang-toggle-btn active" onclick="fetchVideoLanguage('${encodeURIComponent(showName)}', ${s}, ${e}, 'hindi', this)" style="padding:8px 15px; background:#f59e0b; color:#000; font-weight:bold; border:none; border-radius:5px; cursor:pointer;">Hindi (Default)</button>
+                <button class="lang-toggle-btn" onclick="fetchVideoLanguage('${encodeURIComponent(showName)}', ${s}, ${e}, 'english', this)" style="padding:8px 15px; background:#222; color:#fff; font-weight:bold; border:none; border-radius:5px; cursor:pointer;">English</button>
+                <button class="lang-toggle-btn" onclick="fetchVideoLanguage('${encodeURIComponent(showName)}', ${s}, ${e}, 'japanese', this)" style="padding:8px 15px; background:#222; color:#fff; font-weight:bold; border:none; border-radius:5px; cursor:pointer;">Japanese</button>
             </div>
         </div>
     `;
 
-    // डिफ़ॉल्ट रूप से हमेशा पहले हिंदी वीडियो लोड करेगा!
-    fetchVideoLanguage(encodeURIComponent(showName), 'hindi', document.querySelector('.lang-toggle-btn.active'));
+    // डिफ़ॉल्ट रूप से हिंदी मंगाएगा
+    fetchVideoLanguage(encodeURIComponent(showName), s, e, 'hindi', document.querySelector('.lang-toggle-btn.active'));
 }
 
-// यह फंक्शन बटन दबाने पर काम करेगा और सीधा Cloud API से बात करेगा
-function fetchVideoLanguage(showNameEncoded, language, btnElement) {
+// 🔥 Dynamic API Calling (अब ये नाम के साथ Season और Episode भी बैकएंड को भेजेगा)
+function fetchVideoLanguage(showNameEncoded, season, episode, language, btnElement) {
     const statusText = document.getElementById('player-status');
     const videoElement = document.getElementById('custom-video-player');
 
-    // बटन्स का कलर सेट करना
     document.querySelectorAll('.lang-toggle-btn').forEach(btn => {
         btn.style.background = '#222';
         btn.style.color = '#fff';
@@ -264,15 +263,14 @@ function fetchVideoLanguage(showNameEncoded, language, btnElement) {
     btnElement.style.background = '#f59e0b';
     btnElement.style.color = '#000';
 
-    statusText.innerText = `⏳ Requesting ${language.toUpperCase()} audio...`;
+    statusText.innerText = `⏳ Bot is fetching ${language.toUpperCase()} audio for Season ${season} Episode ${episode}...`;
     statusText.style.color = "#f59e0b";
 
-    // Backend से स्पेसिफिक भाषा का लिंक मांगना (अब Localhost की जगह Cloud URL इस्तेमाल हो रहा है)
-    fetch(`${BACKEND_URL}/api/get-anime?name=${showNameEncoded}&lang=${language}`)
+    fetch(`${BACKEND_URL}/api/get-anime?name=${showNameEncoded}&s=${season}&e=${episode}&lang=${language}`)
         .then(response => response.json())
         .then(data => {
             if (data.success && data.videoUrl) {
-                statusText.innerText = `✅ Playing in ${language.toUpperCase()} (Source: ${data.source || 'Database'})`;
+                statusText.innerText = `✅ Playing: S${season} E${episode} in ${language.toUpperCase()} (Source: ${data.source})`;
                 statusText.style.color = "#00ff88";
 
                 if (typeof Hls !== 'undefined' && Hls.isSupported() && data.videoUrl.includes('.m3u8')) {
@@ -287,9 +285,9 @@ function fetchVideoLanguage(showNameEncoded, language, btnElement) {
                     videoElement.play().catch(e => console.log("Auto-play blocked by browser."));
                 }
             } else {
-                statusText.innerText = `❌ ${data.error || 'Video link not found.'}`;
+                statusText.innerText = `❌ ${data.error || 'Episode link not found.'}`;
                 statusText.style.color = "#ff4444";
-                videoElement.src = ""; // क्लियर प्लेयर
+                videoElement.src = ""; 
             }
         })
         .catch(err => {
