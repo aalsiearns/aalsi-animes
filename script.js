@@ -2,18 +2,12 @@ const API_KEY = 'fb0b6730bbe491d60fd75002a8cfc63f';
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_URL = 'https://image.tmdb.org/t/p/w500';
 
+// 🔥 अपना RENDER का लाइव लिंक यहाँ डालें (लास्ट में / मत लगाना)
+const BACKEND_URL = 'https://aalsi-anime-backend.onrender.com'; 
+
 let currentShowData = null;
 let currentSeasonNum = 1;
 let visibleEpisodesLimit = 10;
-let activeServer = 0;
-
-// Premium & Multi-Audio Servers 
-const SMART_SERVERS = [
-    (id, s, e) => `https://vidlink.pro/tv/${id}/${s}/${e}?primary_color=f59e0b`,
-    (id, s, e) => `https://vidsrc.vip/embed/tv/${id}/${s}/${e}`,
-    (id, s, e) => `https://vidsrc.pm/embed/tv/${id}/${s}/${e}`,
-    (id, s, e) => `https://autoembed.co/tv/tmdb/${id}-${s}-${e}`
-];
 
 async function switchNav(el, type) {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
@@ -33,20 +27,8 @@ async function switchNav(el, type) {
         return;
     }
 
-    // तुम्हारे ओरिजिनल लैंग्वेज बटन्स वापस लगा दिए गए हैं 
     container.innerHTML = `
-        <div class="filter-section">
-            <div class="filter-label">Selected language: ● Hindi</div>
-            <div class="lang-grid">
-                <button class="lang-btn active">Hindi<br><span style="font-size:9px; color:#aaa;">हिंदी</span></button>
-                <button class="lang-btn">Tamil<br><span style="font-size:9px; color:#aaa;">தமிழ்</span></button>
-                <button class="lang-btn">Telugu<br><span style="font-size:9px; color:#aaa;">తెలుగు</span></button>
-                <button class="lang-btn">English<br><span style="font-size:9px; color:#aaa;">English</span></button>
-                <button class="lang-btn">Japanese<br><span style="font-size:9px; color:#aaa;">日本語</span></button>
-                <button class="lang-btn">Korean<br><span style="font-size:9px; color:#aaa;">한국어</span></button>
-            </div>
-        </div>
-        <div id="movie-rows-container"></div>
+        <div id="movie-rows-container" style="padding-top:15px;"></div>
     `;
 
     const rows = document.getElementById('movie-rows-container');
@@ -89,16 +71,19 @@ async function switchNav(el, type) {
             const pCont = sec.querySelector('.poster-container');
 
             if (cat.isManual) {
-                // फास्ट लोडिंग (Parallel Fetching) ताकि स्क्रीन ब्लैंक न रहे
-                const fetchPromises = cat.queryList.map(qName => 
-                    fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(qName)}`).then(res => res.json())
-                );
+                const fetchPromises = cat.queryList.map(async qName => {
+                    try {
+                        const res = await fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(qName)}`);
+                        return await res.json();
+                    } catch (err) {
+                        return null; 
+                    }
+                });
                 
                 const results = await Promise.all(fetchPromises);
                 
                 results.forEach(sData => {
-                    if (sData.results && sData.results.length > 0) {
-                        // सबसे सटीक पोस्टर वाला रिजल्ट ढूंढना
+                    if (sData && sData.results && sData.results.length > 0) {
                         const item = sData.results.find(i => (i.media_type === 'tv' || i.media_type === 'movie') && i.poster_path) || sData.results[0];
                         if (item && item.poster_path) {
                             const card = document.createElement('div');
@@ -238,42 +223,80 @@ function loadMoreEpisodes() {
     fetchEpisodesForDedicatedPage();
 }
 
+// 🔥 Custom Player with Working Language Toggle
 function playVideo(show, s, e, name) {
     const container = document.getElementById('main-container');
     const showName = show.name || show.title;
-
-    const initialUrl = SMART_SERVERS[activeServer](show.id, s, e);
 
     container.innerHTML = `
         <div class="video-player-section" style="padding:15px;">
             <button class="back-btn" onclick="openDedicatedPage(currentShowData)" style="background:#222; color:#fff; border:none; padding:8px 15px; border-radius:6px; margin-bottom:10px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i> Back</button>
             <h2 style="font-size:14px; margin-bottom:5px; color:#fff;">${showName} - S${s} E${e}: ${name}</h2>
-            <p style="color:#00ff88; font-size:10px; margin-bottom:8px;">⚡ Multi-Audio Server (Check player settings for Hindi)</p>
-            
-            <div id="s-gallery" class="server-gallery" style="margin-bottom:10px; display:flex; gap:5px; flex-wrap:wrap;"></div>
+            <p id="player-status" style="color:#f59e0b; font-size:11px; margin-bottom:8px;">⏳ Connecting to Cloud Server...</p>
             
             <div class="embed-container" style="position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:10px; overflow:hidden; border:1px solid #333;">
-                <iframe id="vid" src="${initialUrl}" width="100%" height="100%" frameborder="0" allowfullscreen="true" scrolling="no" allow="autoplay; fullscreen; encrypted-media" referrerpolicy="origin"></iframe>
+                <video id="custom-video-player" controls style="width:100%; height:100%; outline:none; background:black;"></video>
+            </div>
+
+            <!-- 🔥 Language Toggle Buttons -->
+            <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+                <button class="lang-toggle-btn active" onclick="fetchVideoLanguage('${encodeURIComponent(showName)}', 'hindi', this)" style="padding:8px 15px; background:#f59e0b; color:#000; font-weight:bold; border:none; border-radius:5px; cursor:pointer;">Hindi (Default)</button>
+                <button class="lang-toggle-btn" onclick="fetchVideoLanguage('${encodeURIComponent(showName)}', 'english', this)" style="padding:8px 15px; background:#222; color:#fff; font-weight:bold; border:none; border-radius:5px; cursor:pointer;">English</button>
+                <button class="lang-toggle-btn" onclick="fetchVideoLanguage('${encodeURIComponent(showName)}', 'japanese', this)" style="padding:8px 15px; background:#222; color:#fff; font-weight:bold; border:none; border-radius:5px; cursor:pointer;">Japanese</button>
             </div>
         </div>
     `;
 
-    const sBox = document.getElementById('s-gallery');
-    SMART_SERVERS.forEach((srvFn, idx) => {
-        const b = document.createElement('button');
-        b.className = `server-btn ${idx === activeServer ? 'active' : ''}`;
-        b.innerText = `Server ${idx + 1}`;
-        b.style.cssText = `padding:5px 10px; background:${idx === activeServer ? '#f59e0b' : '#222'}; color:#fff; border:none; border-radius:4px; font-size:11px; cursor:pointer; margin-bottom:5px;`;
-        b.onclick = () => {
-            activeServer = idx;
-            document.getElementById('vid').src = srvFn(show.id, s, e);
-            document.querySelectorAll('.server-btn').forEach(x => {
-                x.style.background = '#222';
-            });
-            b.style.background = '#f59e0b';
-        };
-        sBox.appendChild(b);
+    // डिफ़ॉल्ट रूप से हमेशा पहले हिंदी वीडियो लोड करेगा!
+    fetchVideoLanguage(encodeURIComponent(showName), 'hindi', document.querySelector('.lang-toggle-btn.active'));
+}
+
+// यह फंक्शन बटन दबाने पर काम करेगा और सीधा Cloud API से बात करेगा
+function fetchVideoLanguage(showNameEncoded, language, btnElement) {
+    const statusText = document.getElementById('player-status');
+    const videoElement = document.getElementById('custom-video-player');
+
+    // बटन्स का कलर सेट करना
+    document.querySelectorAll('.lang-toggle-btn').forEach(btn => {
+        btn.style.background = '#222';
+        btn.style.color = '#fff';
     });
+    btnElement.style.background = '#f59e0b';
+    btnElement.style.color = '#000';
+
+    statusText.innerText = `⏳ Requesting ${language.toUpperCase()} audio...`;
+    statusText.style.color = "#f59e0b";
+
+    // Backend से स्पेसिफिक भाषा का लिंक मांगना (अब Localhost की जगह Cloud URL इस्तेमाल हो रहा है)
+    fetch(`${BACKEND_URL}/api/get-anime?name=${showNameEncoded}&lang=${language}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.videoUrl) {
+                statusText.innerText = `✅ Playing in ${language.toUpperCase()} (Source: ${data.source || 'Database'})`;
+                statusText.style.color = "#00ff88";
+
+                if (typeof Hls !== 'undefined' && Hls.isSupported() && data.videoUrl.includes('.m3u8')) {
+                    const hls = new Hls();
+                    hls.loadSource(data.videoUrl);
+                    hls.attachMedia(videoElement);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        videoElement.play();
+                    });
+                } else {
+                    videoElement.src = data.videoUrl;
+                    videoElement.play().catch(e => console.log("Auto-play blocked by browser."));
+                }
+            } else {
+                statusText.innerText = `❌ ${data.error || 'Video link not found.'}`;
+                statusText.style.color = "#ff4444";
+                videoElement.src = ""; // क्लियर प्लेयर
+            }
+        })
+        .catch(err => {
+            console.error("API Error:", err);
+            statusText.innerText = "❌ Backend is offline or link is incorrect.";
+            statusText.style.color = "#ff4444";
+        });
 }
 
 async function handleSearch(query) {
@@ -282,13 +305,11 @@ async function handleSearch(query) {
         if(resBox) resBox.innerHTML = '';
         return;
     }
-    
     try {
         const res = await fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}`);
         const data = await res.json();
         if(!resBox) return;
         resBox.innerHTML = '';
-        
         if(data.results && data.results.length > 0) {
             data.results.forEach(i => {
                 if(i.poster_path && (i.media_type === 'tv' || i.media_type === 'movie')) {
@@ -303,12 +324,8 @@ async function handleSearch(query) {
                     resBox.appendChild(card);
                 }
             });
-        } else {
-            resBox.innerHTML = '<p style="color:#aaa; font-size:12px; grid-column: span 3; text-align:center;">No results found.</p>';
         }
-    } catch (err) {
-        console.error("Search Error:", err);
-    }
+    } catch (err) {}
 }
 
 document.addEventListener("DOMContentLoaded", () => {
