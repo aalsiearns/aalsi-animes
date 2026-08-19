@@ -7,11 +7,14 @@ let currentSeasonNum = 1;
 let visibleEpisodesLimit = 10;
 let activeServer = 0;
 
-// Cloudflare Proxy और डायरेक्ट स्ट्रीमिंग सर्वर्स का सेटअप
+// तुम्हारा खुद का Cloudflare Proxy Server
+const PROXY_URL = 'https://aalsi-proxy.prohustlermedia.workers.dev/';
+
+// सर्वर्स को अब तुम्हारे प्रॉक्सी के थ्रू पास किया गया है ताकि ब्लैक स्क्रीन न आए
 const SMART_SERVERS = [
-    (id, s, e) => `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}`,
-    (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`,
-    (id, s, e) => `https://player.vidsrc.nl/embed/tv/${id}/${s}/${e}`
+    (id, s, e) => `${PROXY_URL}https://vidsrc.xyz/embed/tv/${id}/${s}/${e}`,
+    (id, s, e) => `${PROXY_URL}https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`,
+    (id, s, e) => `${PROXY_URL}https://player.vidsrc.nl/embed/tv/${id}/${s}/${e}`
 ];
 
 async function switchNav(el, type) {
@@ -243,7 +246,7 @@ function playVideo(show, s, e, name) {
         <div class="video-player-section" style="padding:15px;">
             <button class="back-btn" onclick="openDedicatedPage(currentShowData)" style="background:#222; color:#fff; border:none; padding:8px 15px; border-radius:6px; margin-bottom:10px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i> Back</button>
             <h2 style="font-size:14px; margin-bottom:5px; color:#fff;">${showName} - S${s} E${e}: ${name}</h2>
-            <p style="color:#00ff88; font-size:10px; margin-bottom:8px;">⚡ Cloudflare Proxy Stream Active (Switch servers if black screen)</p>
+            <p style="color:#00ff88; font-size:10px; margin-bottom:8px;">⚡ Cloudflare Proxy Stream Active</p>
             
             <div id="s-gallery" class="server-gallery" style="margin-bottom:10px; display:flex; gap:5px;"></div>
             
