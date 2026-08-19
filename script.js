@@ -7,7 +7,7 @@ let currentSeasonNum = 1;
 let visibleEpisodesLimit = 10;
 let activeServer = 0;
 
-// Premium & Multi-Audio Servers (इनमें सेटिंग्स के अंदर हिंदी ट्रैक मिल सकता है)
+// Premium & Multi-Audio Servers 
 const SMART_SERVERS = [
     (id, s, e) => `https://vidlink.pro/tv/${id}/${s}/${e}?primary_color=f59e0b`,
     (id, s, e) => `https://vidsrc.vip/embed/tv/${id}/${s}/${e}`,
@@ -33,13 +33,17 @@ async function switchNav(el, type) {
         return;
     }
 
+    // तुम्हारे ओरिजिनल लैंग्वेज बटन्स वापस लगा दिए गए हैं 
     container.innerHTML = `
         <div class="filter-section">
             <div class="filter-label">Selected language: ● Hindi</div>
             <div class="lang-grid">
-                <button class="lang-btn active">Hindi</button>
-                <button class="lang-btn">English</button>
-                <button class="lang-btn">Japanese</button>
+                <button class="lang-btn active">Hindi<br><span style="font-size:9px; color:#aaa;">हिंदी</span></button>
+                <button class="lang-btn">Tamil<br><span style="font-size:9px; color:#aaa;">தமிழ்</span></button>
+                <button class="lang-btn">Telugu<br><span style="font-size:9px; color:#aaa;">తెలుగు</span></button>
+                <button class="lang-btn">English<br><span style="font-size:9px; color:#aaa;">English</span></button>
+                <button class="lang-btn">Japanese<br><span style="font-size:9px; color:#aaa;">日本語</span></button>
+                <button class="lang-btn">Korean<br><span style="font-size:9px; color:#aaa;">한국어</span></button>
             </div>
         </div>
         <div id="movie-rows-container"></div>
@@ -50,7 +54,7 @@ async function switchNav(el, type) {
 
     if (type === 'anime') {
         cats = [
-            { title: "🔥 Top Anime Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc` }
+            { title: "🔥 Japanese Anime Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc` }
         ];
     } else if (type === 'cartoon') {
         cats = [
@@ -85,27 +89,29 @@ async function switchNav(el, type) {
             const pCont = sec.querySelector('.poster-container');
 
             if (cat.isManual) {
-                for (let qName of cat.queryList) {
-                    try {
-                        const sRes = await fetch(`${BASE_URL}/search/tv?api_key=${API_KEY}&query=${encodeURIComponent(qName)}`);
-                        const sData = await sRes.json();
-                        if (sData.results && sData.results.length > 0) {
-                            const item = sData.results[0];
-                            if (item.poster_path) {
-                                const card = document.createElement('div');
-                                card.className = 'poster-card';
-                                card.innerHTML = `
-                                    <img src="${IMG_URL + item.poster_path}" alt="${item.name}">
-                                    <div class="poster-title">${item.name}</div>
-                                `;
-                                card.onclick = () => openDedicatedPage(item);
-                                pCont.appendChild(card);
-                            }
+                // फास्ट लोडिंग (Parallel Fetching) ताकि स्क्रीन ब्लैंक न रहे
+                const fetchPromises = cat.queryList.map(qName => 
+                    fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(qName)}`).then(res => res.json())
+                );
+                
+                const results = await Promise.all(fetchPromises);
+                
+                results.forEach(sData => {
+                    if (sData.results && sData.results.length > 0) {
+                        // सबसे सटीक पोस्टर वाला रिजल्ट ढूंढना
+                        const item = sData.results.find(i => (i.media_type === 'tv' || i.media_type === 'movie') && i.poster_path) || sData.results[0];
+                        if (item && item.poster_path) {
+                            const card = document.createElement('div');
+                            card.className = 'poster-card';
+                            card.innerHTML = `
+                                <img src="${IMG_URL + item.poster_path}" alt="${item.name || item.title}">
+                                <div class="poster-title">${item.name || item.title}</div>
+                            `;
+                            card.onclick = () => openDedicatedPage(item);
+                            pCont.appendChild(card);
                         }
-                    } catch (err) {
-                        console.error("Manual fetch error:", err);
                     }
-                }
+                });
             } else {
                 const res = await fetch(cat.url);
                 const data = await res.json();
