@@ -7,11 +7,12 @@ let currentSeasonNum = 1;
 let visibleEpisodesLimit = 10;
 let activeServer = 0;
 
-// बिल्कुल नए और मोबाइल के लिए ऑप्टिमाइज़्ड प्रीमियम सर्वर्स (No Proxy Needed)
+// Premium & Multi-Audio Servers (इनमें सेटिंग्स के अंदर हिंदी ट्रैक मिल सकता है)
 const SMART_SERVERS = [
-    (id, s, e) => `https://vidlink.pro/tv/${id}/${s}/${e}`,       // Server 1: VidLink (Best for Mobile & Multi-Audio)
-    (id, s, e) => `https://vidsrc.vip/embed/tv/${id}/${s}/${e}`,  // Server 2: VIP Instance of Vidsrc
-    (id, s, e) => `https://vidsrc.pm/embed/tv/${id}/${s}/${e}`    // Server 3: PM Instance
+    (id, s, e) => `https://vidlink.pro/tv/${id}/${s}/${e}?primary_color=f59e0b`,
+    (id, s, e) => `https://vidsrc.vip/embed/tv/${id}/${s}/${e}`,
+    (id, s, e) => `https://vidsrc.pm/embed/tv/${id}/${s}/${e}`,
+    (id, s, e) => `https://autoembed.co/tv/tmdb/${id}-${s}-${e}`
 ];
 
 async function switchNav(el, type) {
@@ -36,12 +37,9 @@ async function switchNav(el, type) {
         <div class="filter-section">
             <div class="filter-label">Selected language: ● Hindi</div>
             <div class="lang-grid">
-                <button class="lang-btn active">Hindi<br><span style="font-size:9px; color:#aaa;">हिंदी</span></button>
-                <button class="lang-btn">Tamil<br><span style="font-size:9px; color:#aaa;">தமிழ்</span></button>
-                <button class="lang-btn">Telugu<br><span style="font-size:9px; color:#aaa;">తెలుగు</span></button>
-                <button class="lang-btn">English<br><span style="font-size:9px; color:#aaa;">English</span></button>
-                <button class="lang-btn">Japanese<br><span style="font-size:9px; color:#aaa;">日本語</span></button>
-                <button class="lang-btn">Korean<br><span style="font-size:9px; color:#aaa;">한국어</span></button>
+                <button class="lang-btn active">Hindi</button>
+                <button class="lang-btn">English</button>
+                <button class="lang-btn">Japanese</button>
             </div>
         </div>
         <div id="movie-rows-container"></div>
@@ -52,11 +50,12 @@ async function switchNav(el, type) {
 
     if (type === 'anime') {
         cats = [
-            { title: "🔥 Japanese Anime Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc` }
+            { title: "🔥 Top Anime Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc` }
         ];
     } else if (type === 'cartoon') {
         cats = [
-            { title: "🧸 Cartoon Favorites", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=en&sort_by=popularity.desc` }
+            { title: "📺 All Time Favorite Cartoons", isManual: true, queryList: ["Doraemon", "Crayon Shin-chan", "Tom and Jerry", "Ben 10", "Oggy and the Cockroaches"] },
+            { title: "🧸 More Cartoons", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=en&sort_by=popularity.desc` }
         ];
     } else if (type === 'movies') {
         cats = [
@@ -68,9 +67,9 @@ async function switchNav(el, type) {
         ];
     } else {
         cats = [
-            { title: "🔥 Trending Core Anime (Naruto, DBZ, AOT)", isManual: true, queryList: ["Naruto Shippuden", "Naruto", "Dragon Ball Z", "Attack on Titan", "Jujutsu Kaisen", "Demon Slayer", "Tokyo Revengers"] },
-            { title: "⭐ Most-Watched Anime Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc` },
-            { title: "🧸 Cartoon Favorites", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=en&sort_by=popularity.desc` }
+            { title: "🔥 Trending Core Anime", isManual: true, queryList: ["Naruto Shippuden", "Naruto", "Dragon Ball Z", "Attack on Titan", "Tokyo Revengers", "Jujutsu Kaisen", "Demon Slayer"] },
+            { title: "📺 All Time Favorite Cartoons", isManual: true, queryList: ["Doraemon", "Crayon Shin-chan", "Tom and Jerry", "Ben 10", "Oggy and the Cockroaches"] },
+            { title: "⭐ Most-Watched Animation", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc` }
         ];
     }
 
@@ -243,8 +242,9 @@ function playVideo(show, s, e, name) {
         <div class="video-player-section" style="padding:15px;">
             <button class="back-btn" onclick="openDedicatedPage(currentShowData)" style="background:#222; color:#fff; border:none; padding:8px 15px; border-radius:6px; margin-bottom:10px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i> Back</button>
             <h2 style="font-size:14px; margin-bottom:5px; color:#fff;">${showName} - S${s} E${e}: ${name}</h2>
+            <p style="color:#00ff88; font-size:10px; margin-bottom:8px;">⚡ Multi-Audio Server (Check player settings for Hindi)</p>
             
-            <div id="s-gallery" class="server-gallery" style="margin-bottom:10px; display:flex; gap:5px;"></div>
+            <div id="s-gallery" class="server-gallery" style="margin-bottom:10px; display:flex; gap:5px; flex-wrap:wrap;"></div>
             
             <div class="embed-container" style="position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:10px; overflow:hidden; border:1px solid #333;">
                 <iframe id="vid" src="${initialUrl}" width="100%" height="100%" frameborder="0" allowfullscreen="true" scrolling="no" allow="autoplay; fullscreen; encrypted-media" referrerpolicy="origin"></iframe>
@@ -257,7 +257,7 @@ function playVideo(show, s, e, name) {
         const b = document.createElement('button');
         b.className = `server-btn ${idx === activeServer ? 'active' : ''}`;
         b.innerText = `Server ${idx + 1}`;
-        b.style.cssText = `padding:5px 10px; background:${idx === activeServer ? '#f59e0b' : '#222'}; color:#fff; border:none; border-radius:4px; font-size:11px; cursor:pointer;`;
+        b.style.cssText = `padding:5px 10px; background:${idx === activeServer ? '#f59e0b' : '#222'}; color:#fff; border:none; border-radius:4px; font-size:11px; cursor:pointer; margin-bottom:5px;`;
         b.onclick = () => {
             activeServer = idx;
             document.getElementById('vid').src = srvFn(show.id, s, e);
