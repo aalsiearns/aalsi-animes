@@ -1,10 +1,13 @@
-const BACKEND_URL = 'https://aalsi-backed.vercel.app/api'; 
+const API_KEY = 'fb0b6730bbe491d60fd75002a8cfc63f';
+const BASE_URL = 'https://api.themoviedb.org/3';
+const IMG_URL = 'https://image.tmdb.org/t/p/w500';
 
+const BACKEND_URL = 'https://aalsi-backed.vercel.app'; 
+
+let currentShowData = null;
+let currentSeasonNum = 1;
 let visibleEpisodesLimit = 10;
-let currentAnimeId = null;
-let allEpisodesList = [];
 
-// 🌐 Navigation & Home Feed (Renime API /home se data aayega)
 async function switchNav(el, type) {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     if(el) el.classList.add('active');
@@ -23,214 +26,202 @@ async function switchNav(el, type) {
         return;
     }
 
-    container.innerHTML = `
-        <div id="movie-rows-container" style="padding-top:15px;">
-            <p style="text-align:center; color:#aaa; padding:20px;">Loading Anime Feed...</p>
-        </div>
-    `;
+    container.innerHTML = `<div id="movie-rows-container" style="padding-top:15px;"></div>`;
+    const rows = document.getElementById('movie-rows-container');
+    let cats = [];
 
-    try {
-        // Renime API ka /home endpoint call karenge
-        let res = await fetch(`${BACKEND_URL}/home`);
-        let data = await res.json();
-        
-        const rows = document.getElementById('movie-rows-container');
-        rows.innerHTML = `
-            <div class="category-section">
-                <div class="section-header-flex"><h2 class="section-title">🔥 AnimeSalt & WatchAnimeWorld Feed</h2></div>
-                <div class="poster-container" id="home-poster-grid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; padding:10px;"></div>
-            </div>
-        `;
+    if (type === 'anime') {
+        cats = [{ title: "🔥 Japanese Anime Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc` }];
+    } else if (type === 'cartoon') {
+        cats = [
+            { title: "📺 All Time Favorite Cartoons", isManual: true, queryList: ["Doraemon", "Crayon Shin-chan", "Tom and Jerry", "Ben 10", "Oggy and the Cockroaches"] },
+            { title: "🧸 More Cartoons", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&with_original_language=en&sort_by=popularity.desc` }
+        ];
+    } else if (type === 'movies') {
+        cats = [{ title: "🎬 Anime & Cartoon Movies", url: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc` }];
+    } else if (type === 'series') {
+        cats = [{ title: "📺 All Animation Series", url: `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc` }];
+    } else {
+        cats = [
+            { title: "🔥 Trending Core Anime", isManual: true, queryList: ["Naruto Shippuden", "Naruto", "Dragon Ball Z", "Attack on Titan", "Tokyo Revengers", "Jujutsu Kaisen", "Demon Slayer"] },
+            { title: "📺 All Time Favorite Cartoons", isManual: true, queryList: ["Doraemon", "Crayon Shin-chan", "Tom and Jerry", "Ben 10", "Oggy and the Cockroaches"] }
+        ];
+    }
 
-        const pCont = document.getElementById('home-poster-grid');
-        let items = data.results || data.anime || data;
+    for (let cat of cats) {
+        try {
+            const sec = document.createElement('div');
+            sec.className = "category-section";
+            sec.innerHTML = `<div class="section-header-flex"><h2 class="section-title">${cat.title}</h2></div><div class="poster-container"></div>`;
+            rows.appendChild(sec);
+            const pCont = sec.querySelector('.poster-container');
 
-        if (Array.isArray(items) && items.length > 0) {
-            items.forEach(anime => {
-                const card = document.createElement('div');
-                card.className = 'poster-card';
-                card.style.cursor = 'pointer';
-                card.innerHTML = `
-                    <img src="${anime.image || anime.poster || 'https://via.placeholder.com/150'}" alt="${anime.title}" style="width:100%; border-radius:6px; aspect-ratio:3/4; object-fit:cover;">
-                    <div class="poster-title" style="color:#fff; font-size:12px; margin-top:5px; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${anime.title}</div>
-                `;
-                card.onclick = () => openDedicatedPage(anime);
-                pCont.appendChild(card);
-            });
-        } else {
-            pCont.innerHTML = `<p style="color:#aaa; text-align:center;">No anime found.</p>`;
-        }
-
-    } catch (err) {
-        console.error("Home Load Error:", err);
-        document.getElementById('movie-rows-container').innerHTML = `<p style="text-align:center; color:#ff4444;">Failed to load anime feed.</p>`;
+            if (cat.isManual) {
+                const results = await Promise.all(cat.queryList.map(q => fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(q)}`).then(r => r.json()).catch(() => null)));
+                results.forEach(sData => {
+                    if (sData?.results?.length > 0) {
+                        const item = sData.results.find(i => (i.media_type === 'tv' || i.media_type === 'movie') && i.poster_path) || sData.results[0];
+                        if (item?.poster_path) {
+                            const card = document.createElement('div');
+                            card.className = 'poster-card';
+                            card.innerHTML = `<img src="${IMG_URL + item.poster_path}" alt="${item.name || item.title}"><div class="poster-title">${item.name || item.title}</div>`;
+                            card.onclick = () => openDedicatedPage(item);
+                            pCont.appendChild(card);
+                        }
+                    }
+                });
+            } else {
+                const res = await fetch(cat.url);
+                const data = await res.json();
+                data.results?.forEach(i => {
+                    if (i.poster_path) {
+                        const card = document.createElement('div');
+                        card.className = 'poster-card';
+                        card.innerHTML = `<img src="${IMG_URL + i.poster_path}" alt="${i.name || i.title}"><div class="poster-title">${i.name || i.title}</div>`;
+                        card.onclick = () => openDedicatedPage(i);
+                        pCont.appendChild(card);
+                    }
+                });
+            }
+        } catch (e) { console.error(e); }
     }
 }
 
-async function loadAllRows(type = 'home') {
-    switchNav(null, type);
-}
+async function loadAllRows(type = 'home') { switchNav(null, type); }
 
-// 🔍 Search Functionality (Renime API /search)
-async function handleSearch(query) {
-    const resBox = document.getElementById('search-results');
-    if(!query || query.trim() === '') {
-        if(resBox) resBox.innerHTML = '';
-        return;
-    }
-    
-    resBox.innerHTML = `<p style="color:#aaa; font-size:12px; grid-column:span 3; text-align:center;">Searching...</p>`;
+async function openDedicatedPage(item) {
+    const isMovie = !item.name;
+    if (isMovie) { playVideo(item, 1, 1, item.title || "Full Movie"); return; }
 
-    try {
-        let res = await fetch(`${BACKEND_URL}/search?q=${encodeURIComponent(query)}`);
-        let data = await res.json();
-        let results = data.results || data.data || data;
-
-        resBox.innerHTML = '';
-        if(Array.isArray(results) && results.length > 0) {
-            results.forEach(anime => {
-                const card = document.createElement('div');
-                card.className = 'poster-card';
-                card.style.cursor = 'pointer';
-                card.innerHTML = `
-                    <img src="${anime.image || anime.poster || 'https://via.placeholder.com/150'}" alt="${anime.title}" style="width:100%; border-radius:6px; aspect-ratio:3/4; object-fit:cover;">
-                    <div class="poster-title" style="color:#fff; font-size:12px; margin-top:5px; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${anime.title}</div>
-                `;
-                card.onclick = () => openDedicatedPage(anime);
-                resBox.appendChild(card);
-            });
-        } else {
-            resBox.innerHTML = `<p style="color:#aaa; font-size:12px; grid-column:span 3; text-align:center;">No results found.</p>`;
-        }
-    } catch (err) {
-        resBox.innerHTML = `<p style="color:#ff4444; font-size:12px; grid-column:span 3; text-align:center;">Search failed.</p>`;
-    }
-}
-
-// 📄 Dedicated Page to show Episodes list directly from Renime API
-async function openDedicatedPage(anime) {
-    currentAnimeId = anime.id || anime.slug || anime.animeId;
     const container = document.getElementById('main-container');
-    
-    container.innerHTML = `<p style="text-align:center; padding:40px; color:#aaa;">Loading Episodes...</p>`;
+    container.innerHTML = `<p style="text-align:center; padding:40px; color:#aaa;">Loading Details...</p>`;
 
     try {
-        let res = await fetch(`${BACKEND_URL}/episodes?id=${encodeURIComponent(currentAnimeId)}`);
-        let data = await res.json();
-        allEpisodesList = data.episodes || data.data || data;
-        visibleEpisodesLimit = 15;
+        const res = await fetch(`${BASE_URL}/tv/${item.id}?api_key=${API_KEY}`);
+        const data = await res.json();
+        currentShowData = data;
+        currentSeasonNum = data.seasons.find(s => s.season_number > 0)?.season_number || 1;
+        visibleEpisodesLimit = 10;
 
         container.innerHTML = `
-            <div class="dedicated-page" style="padding:15px;">
-                <button class="back-btn" onclick="loadAllRows('home')" style="background:#222; color:#fff; border:none; padding:8px 15px; border-radius:6px; margin-bottom:15px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+            <div class="dedicated-page">
+                <button class="back-btn" onclick="loadAllRows('home')"><i class="fa-solid fa-arrow-left"></i> Back</button>
                 <div class="anime-header-box" style="display:flex; gap:15px; margin-bottom:15px; align-items:flex-start;">
-                    <img src="${anime.image || anime.poster || 'https://via.placeholder.com/150'}" style="width:110px; height:160px; object-fit:cover; border-radius:8px; flex-shrink:0;" alt="${anime.title}">
+                    <img src="${IMG_URL + data.poster_path}" style="width:110px; height:160px; object-fit:cover; border-radius:8px;" alt="${data.name}">
                     <div class="anime-meta">
-                        <h1 style="font-size:16px; margin-bottom:5px; color:#fff;">${anime.title}</h1>
-                        <p style="color:#aaa; font-size:11px;">Tap an episode below to start streaming instantly!</p>
+                        <h1 style="font-size:18px; margin-bottom:5px;">${data.name}</h1>
+                        <p style="color:#aaa; font-size:11px; margin-bottom:5px;">⭐ ${data.vote_average?.toFixed(1) || 'N/A'} | Seasons: ${data.number_of_seasons}</p>
+                        <p style="font-size:11px; line-height:1.3; color:#ccc; max-height:80px; overflow-y:auto;">${data.overview || 'No description.'}</p>
                     </div>
                 </div>
-
-                <div id="episodes-grid-box" class="episodes-grid-box" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-top:15px;"></div>
-                <button class="view-more-btn" id="vm-btn" onclick="loadMoreEpisodes()" style="width:100%; margin-top:15px; padding:10px; background:#f59e0b; border:none; font-weight:bold; border-radius:6px; cursor:pointer;">View More Episodes</button>
+                <div class="seasons-bar" id="seasons-chips-box"></div>
+                <div id="episodes-grid-box" class="episodes-grid-box"></div>
+                <button class="view-more-btn" id="vm-btn" onclick="loadMoreEpisodes()">View More Episodes</button>
             </div>
         `;
 
-        renderEpisodesList();
-    } catch (e) {
-        console.error("Episodes Error:", e);
-        container.innerHTML = `<p style="text-align:center; padding:40px; color:#ff4444;">Failed to load episodes.</p>`;
-    }
-}
-
-function renderEpisodesList() {
-    const grid = document.getElementById('episodes-grid-box');
-    grid.innerHTML = '';
-
-    if (Array.isArray(allEpisodesList) && allEpisodesList.length > 0) {
-        const epsToDisplay = allEpisodesList.slice(0, visibleEpisodesLimit);
-        epsToDisplay.forEach((ep, index) => {
-            const div = document.createElement('div');
-            div.className = 'ep-box-card';
-            div.style.background = '#16161a';
-            div.style.padding = '10px';
-            div.style.borderRadius = '8px';
-            div.style.cursor = 'pointer';
-            div.style.border = '1px solid #333';
-            div.innerHTML = `
-                <div class="ep-num" style="color:#f59e0b; font-weight:bold; font-size:12px;">Episode ${ep.number || ep.episode_number || (index + 1)}</div>
-                <div class="ep-title" style="color:#fff; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${ep.title || 'Sub/Dub Episode'}</div>
-            `;
-            div.onclick = () => playVideo(ep);
-            grid.appendChild(div);
+        const sBox = document.getElementById('seasons-chips-box');
+        data.seasons.forEach(s => {
+            if (s.season_number > 0) {
+                const btn = document.createElement('button');
+                btn.className = `season-chip ${s.season_number === currentSeasonNum ? 'active' : ''}`;
+                btn.innerText = s.name;
+                btn.onclick = () => {
+                    currentSeasonNum = s.season_number;
+                    visibleEpisodesLimit = 10;
+                    document.querySelectorAll('.season-chip').forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    fetchEpisodesForDedicatedPage();
+                };
+                sBox.appendChild(btn);
+            }
         });
-
-        const vmBtn = document.getElementById('vm-btn');
-        if(vmBtn) {
-            vmBtn.style.display = (visibleEpisodesLimit >= allEpisodesList.length) ? 'none' : 'block';
-        }
-    } else {
-        grid.innerHTML = '<p style="color:#aaa; font-size:12px;">No episodes available.</p>';
-    }
+        fetchEpisodesForDedicatedPage();
+    } catch (e) { console.error(e); }
 }
 
-function loadMoreEpisodes() {
-    visibleEpisodesLimit += 15;
-    renderEpisodesList();
+async function fetchEpisodesForDedicatedPage() {
+    const grid = document.getElementById('episodes-grid-box');
+    grid.innerHTML = '<p style="color:#aaa; font-size:12px;">Loading episodes...</p>';
+    try {
+        const res = await fetch(`${BASE_URL}/tv/${currentShowData.id}/season/${currentSeasonNum}?api_key=${API_KEY}`);
+        const data = await res.json();
+        grid.innerHTML = '';
+        if (data.episodes?.length > 0) {
+            data.episodes.slice(0, visibleEpisodesLimit).forEach(e => {
+                const div = document.createElement('div');
+                div.className = 'ep-box-card';
+                div.innerHTML = `<img src="${e.still_path ? IMG_URL + e.still_path : IMG_URL + currentShowData.poster_path}" alt="Ep"><div class="ep-box-info"><div class="ep-num">Ep ${e.episode_number}</div><div class="ep-title">${e.name}</div></div>`;
+                div.onclick = () => playVideo(currentShowData, currentSeasonNum, e.episode_number, e.name);
+                grid.appendChild(div);
+            });
+            document.getElementById('vm-btn').style.display = (visibleEpisodesLimit >= data.episodes.length) ? 'none' : 'block';
+        } else { grid.innerHTML = '<p style="color:#aaa; font-size:12px;">No episodes found.</p>'; }
+    } catch (err) { grid.innerHTML = '<p style="color:#ff4500; font-size:12px;">Failed to load episodes.</p>'; }
 }
 
-// 🎬 Video Player & Direct Embed Fetching
-async function playVideo(episode) {
+function loadMoreEpisodes() { visibleEpisodesLimit += 10; fetchEpisodesForDedicatedPage(); }
+
+function playVideo(show, s, e, name) {
     const container = document.getElementById('main-container');
-    const epId = episode.id || episode.episodeId;
-    const epTitle = episode.title || `Episode`;
+    const showName = show.name || show.title;
 
     container.innerHTML = `
         <div class="video-player-section" style="padding:15px;">
-            <button class="back-btn" onclick="openDedicatedPage({id: currentAnimeId})" style="background:#222; color:#fff; border:none; padding:8px 15px; border-radius:6px; margin-bottom:10px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i> Back to Episodes</button>
-            <h2 style="font-size:14px; margin-bottom:5px; color:#fff;">Streaming: ${epTitle}</h2>
-            <p id="player-status" style="color:#f59e0b; font-size:11px; margin-bottom:8px;">⏳ Fetching video stream...</p>
-            
+            <button class="back-btn" onclick="openDedicatedPage(currentShowData)" style="background:#222; color:#fff; border:none; padding:8px 15px; border-radius:6px; margin-bottom:10px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+            <h2 style="font-size:14px; margin-bottom:5px; color:#fff;">${showName} - S${s} E${e}: ${name}</h2>
+            <p id="player-status" style="color:#f59e0b; font-size:11px; margin-bottom:8px;">⏳ Fetching stream...</p>
             <div class="embed-container" style="position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:10px; overflow:hidden; border:1px solid #333;">
                 <video id="custom-video-player" controls style="width:100%; height:100%; outline:none; background:black;"></video>
             </div>
         </div>
     `;
 
-    const statusText = document.getElementById('player-status');
-    const videoElement = document.getElementById('custom-video-player');
-
-    try {
-        let res = await fetch(`${BACKEND_URL}/embed?id=${encodeURIComponent(epId)}`);
-        let data = await res.json();
-        let videoUrl = data.embedUrl || data.url || data.videoUrl || data.stream;
-
-        if (videoUrl) {
-            statusText.innerText = `✅ Streaming live from AnimeSalt/Renime Source!`;
-            statusText.style.color = "#00ff88";
-
-            if (typeof Hls !== 'undefined' && Hls.isSupported() && videoUrl.includes('.m3u8')) {
-                const hls = new Hls();
-                hls.loadSource(videoUrl);
-                hls.attachMedia(videoElement);
-                hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                    videoElement.play();
-                });
+    fetch(`${BACKEND_URL}/api/get-anime?name=${encodeURIComponent(showName)}&s=${s}&e=${e}`)
+        .then(r => r.json())
+        .then(data => {
+            const statusText = document.getElementById('player-status');
+            const videoElement = document.getElementById('custom-video-player');
+            if (data.success && data.videoUrl) {
+                statusText.innerText = `✅ Streaming live!`;
+                statusText.style.color = "#00ff88";
+                if (typeof Hls !== 'undefined' && Hls.isSupported() && data.videoUrl.includes('.m3u8')) {
+                    const hls = new Hls();
+                    hls.loadSource(data.videoUrl);
+                    hls.attachMedia(videoElement);
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => videoElement.play());
+                } else {
+                    videoElement.src = data.videoUrl;
+                    videoElement.play().catch(() => {});
+                }
             } else {
-                videoElement.src = videoUrl;
-                videoElement.play().catch(e => console.log("Auto-play blocked"));
+                statusText.innerText = `❌ Stream not available.`;
+                statusText.style.color = "#ff4444";
             }
-        } else {
-            statusText.innerText = `❌ Stream link not found for this episode.`;
-            statusText.style.color = "#ff4444";
-        }
-    } catch (err) {
-        console.error("Stream Error:", err);
-        statusText.innerText = "❌ Failed to connect to stream server.";
-        statusText.style.color = "#ff4444";
-    }
+        }).catch(() => {
+            document.getElementById('player-status').innerText = "❌ Backend connection error.";
+        });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    loadAllRows('home');
-});
+async function handleSearch(query) {
+    const resBox = document.getElementById('search-results');
+    if (!query?.trim()) { if(resBox) resBox.innerHTML = ''; return; }
+    try {
+        const res = await fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        if (!resBox) return;
+        resBox.innerHTML = '';
+        data.results?.forEach(i => {
+            if (i.poster_path && (i.media_type === 'tv' || i.media_type === 'movie')) {
+                const card = document.createElement('div');
+                card.className = 'poster-card';
+                card.style.width = '100%';
+                card.innerHTML = `<img src="${IMG_URL + i.poster_path}" alt="${i.name || i.title}"><div class="poster-title">${i.name || i.title}</div>`;
+                card.onclick = () => openDedicatedPage(i);
+                resBox.appendChild(card);
+            }
+        });
+    } catch (err) {}
+}
+
+document.addEventListener("DOMContentLoaded", () => loadAllRows('home'));
