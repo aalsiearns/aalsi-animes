@@ -2,8 +2,8 @@ const API_KEY = 'fb0b6730bbe491d60fd75002a8cfc63f';
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_URL = 'https://image.tmdb.org/t/p/w500';
 
-// 🔥 अपना RENDER का लाइव लिंक यहाँ डालें (लास्ट में / मत लगाना)
-const BACKEND_URL = 'https://aalsi-anime-backend.onrender.com'; 
+// 🔥 अपना नया Vercel Backend का लाइव लिंक यहाँ सेट कर दिया है (लास्ट में / मत लगाना)
+const BACKEND_URL = 'https://aalsiapi.vercel.app'; 
 
 let currentShowData = null;
 let currentSeasonNum = 1;
@@ -223,7 +223,6 @@ function loadMoreEpisodes() {
     fetchEpisodesForDedicatedPage();
 }
 
-// 🔥 Custom Player with Dynamic Episode Tracking
 function playVideo(show, s, e, name) {
     const container = document.getElementById('main-container');
     const showName = show.name || show.title;
@@ -238,7 +237,6 @@ function playVideo(show, s, e, name) {
                 <video id="custom-video-player" controls style="width:100%; height:100%; outline:none; background:black;"></video>
             </div>
 
-            <!-- 🔥 Language Toggle Buttons -->
             <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
                 <button class="lang-toggle-btn active" onclick="fetchVideoLanguage('${encodeURIComponent(showName)}', ${s}, ${e}, 'hindi', this)" style="padding:8px 15px; background:#f59e0b; color:#000; font-weight:bold; border:none; border-radius:5px; cursor:pointer;">Hindi (Default)</button>
                 <button class="lang-toggle-btn" onclick="fetchVideoLanguage('${encodeURIComponent(showName)}', ${s}, ${e}, 'english', this)" style="padding:8px 15px; background:#222; color:#fff; font-weight:bold; border:none; border-radius:5px; cursor:pointer;">English</button>
@@ -247,11 +245,9 @@ function playVideo(show, s, e, name) {
         </div>
     `;
 
-    // डिफ़ॉल्ट रूप से हिंदी मंगाएगा
     fetchVideoLanguage(encodeURIComponent(showName), s, e, 'hindi', document.querySelector('.lang-toggle-btn.active'));
 }
 
-// 🔥 Dynamic API Calling (अब ये नाम के साथ Season और Episode भी बैकएंड को भेजेगा)
 function fetchVideoLanguage(showNameEncoded, season, episode, language, btnElement) {
     const statusText = document.getElementById('player-status');
     const videoElement = document.getElementById('custom-video-player');
