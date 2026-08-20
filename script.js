@@ -3,7 +3,8 @@ const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_URL = 'https://image.tmdb.org/t/p/w500';
 
 // 🔥 अपना नया Vercel Backend का लाइव लिंक यहाँ सेट कर दिया है (लास्ट में / मत लगाना)
-const BACKEND_URL = 'https://aalsiapi.vercel.app'; 
+const BACKEND_URL = 'https://aalsi-backed.vercel.app';
+
 
 let currentShowData = null;
 let currentSeasonNum = 1;
